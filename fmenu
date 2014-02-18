@@ -9,7 +9,7 @@ Index and search files using dmenu
 
 OPTIONS:
    -h      Show this message
-   -o      Store index [default: fileindex.txt]
+   -o      Store index [default: /tmp/fmenu_index]
    -d      dmenu parameters [default: -i -l 20]
    -f      force reloading index [default: false]
    -t      time [default: 5min]
@@ -17,7 +17,7 @@ EOF
 }
 
 FORCE=false
-INDEX="fileindex.txt"
+INDEX="/tmp/fmenu_index"
 DMENU="-i -l 20"
 TIME="+5"
 
@@ -29,7 +29,7 @@ do
              exit 1
              ;;
          f)
-             FORCE=1
+             FORCE=true
              ;;
          d)
              DMENU=$OPTARG
@@ -48,10 +48,11 @@ do
 done
 
 function index_files {
-    find ~/ | sed 's/ /\\ /g' | sort -f > "$INDEX"
+    find ~/ \( ! -regex '.*/\..*' \) | sed 's/ /\\ /g' | sort -f > "$INDEX"
 }
+
 echo "Checking if index exists"
-if [[ ! -a "$INDEX" ]] ||  ( test `find $INDEX -mmin $TIME` )
+if [[ ! -a "$INDEX" ]] ||  ( test `find $INDEX -mmin $TIME` ) || ($FORCE)
 then
     echo "Re-indexing.."
     index_files
