@@ -1,0 +1,59 @@
+#!/bin/sh
+
+usage()
+{
+    cat << EOF
+usage: $0 options
+
+Index and search files using dmenu
+
+OPTIONS:
+   -h      Show this message
+   -o      Store index [default: fileindex.txt]
+   -d      dmenu parameters [default: -i -l 20]
+   -f      force reloading index [default: false]
+   -t      time [default: 5min]
+EOF
+}
+
+FORCE=false
+INDEX="fileindex.txt"
+DMENU="-i -l 20"
+TIME="+5"
+
+while getopts "ht:fd:o:" OPTION
+do
+     case $OPTION in
+         h)
+             usage
+             exit 1
+             ;;
+         f)
+             FORCE=1
+             ;;
+         d)
+             DMENU=$OPTARG
+             ;;
+         t)
+             TIME=$OPTARG
+             ;;
+         o)
+             INDEX=$OPTARG
+             ;;
+         ?)
+             usage
+             exit
+             ;;
+     esac
+done
+
+function index_files {
+    find ~/ | sed 's/ /\\ /g' | sort -f > "$INDEX"
+}
+echo "Checking if index exists"
+if [[ ! -a "$INDEX" ]] ||  ( test `find $INDEX -mmin $TIME` )
+then
+    echo "Re-indexing.."
+    index_files
+fi
+cat "$INDEX" | `dmenu $DMENU > /tmp/dmenu_find_output.txt` && cat /tmp/dmenu_find_output.txt | xargs xdg-open
