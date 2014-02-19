@@ -10,9 +10,12 @@ Index and search files using dmenu
 OPTIONS:
    -h      Show this message
    -o      Store index [default: /tmp/fmenu_index]
+   -i      Search folders [default: $HOME]
+   -x      Exclude files [default: ".*\/..*" (i.e. dot-files)]
    -d      dmenu parameters [default: -i -l 20]
    -f      force reloading index [default: false]
    -t      time [default: 5min]
+   -u      Just update the index
 EOF
 }
 
@@ -20,8 +23,10 @@ FORCE=false
 INDEX="/tmp/fmenu_index"
 DMENU="-i -l 20"
 TIME="+5"
-
-while getopts "ht:fd:o:" OPTION
+INPUT=$HOME
+EXCLUDE='.*/\..*'
+DRY=false
+while getopts "ht:fd:o:i:x:u" OPTION
 do
      case $OPTION in
          h)
@@ -40,6 +45,16 @@ do
          o)
              INDEX=$OPTARG
              ;;
+         i)
+             INPUT=$OPTARG
+             ;;
+         x)
+             EXCLUDE=$OPTARG
+             ;;
+         u)
+             FORCE=true
+             DRY=true
+             ;;
          ?)
              usage
              exit
@@ -48,13 +63,15 @@ do
 done
 
 function index_files {
-    find ~/ \( ! -regex '.*/\..*' \) | sed 's/ /\\ /g' | sort -f > "$INDEX"
+    find "$INPUT" \( ! -regex "$EXCLUDE" \) | sed 's/ /\\ /g' | sort -f > "$INDEX"
 }
 
-echo "Checking if index exists"
 if [[ ! -a "$INDEX" ]] ||  ( test `find $INDEX -mmin $TIME` ) || ($FORCE)
 then
-    echo "Re-indexing.."
     index_files
 fi
-cat "$INDEX" | `dmenu $DMENU > /tmp/dmenu_find_output.txt` && cat /tmp/dmenu_find_output.txt | xargs xdg-open
+
+if ( ! $DRY )
+then
+    cat "$INDEX" | `dmenu $DMENU > /tmp/dmenu_find_output.txt` && cat /tmp/dmenu_find_output.txt | xargs xdg-open
+fi
